@@ -1,4 +1,4 @@
-# 🎓 CampusHub
+# 🎓 Campus Marketplace
 
 A student-to-student marketplace designed to simplify buying and selling within college communities.
 
