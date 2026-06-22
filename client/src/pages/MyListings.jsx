@@ -1,0 +1,5 @@
+function MyListings() {
+  return <h1>MyListings</h1>;
+}
+
+export default MyListings;

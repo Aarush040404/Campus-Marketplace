@@ -7,7 +7,10 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("Campus marketplace API Running");
+  res.json({
+    message: "Backend Connected Successfully",
+    aarush:  "this is just a test"
+  });
 });
 
 app.listen(5000, () => {
