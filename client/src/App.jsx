@@ -14,10 +14,13 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/create-listing" element={<CreateListing />} />
-        <Route path="/mylistings" element={<MyListings />} />
+        <Route path="/my-listings" element={<MyListings />} />
       </Routes>
     </BrowserRouter>
   );
 }
+
+
+
 
 export default App;
