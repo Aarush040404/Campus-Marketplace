@@ -1,430 +1,127 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  CalendarDays,
-  CheckCircle2,
-  Eye,
-  MapPin,
-  MessageCircle,
-  PackageOpen,
-  PauseCircle,
-  Pencil,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  Trash2,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { BarChart3, Eye, MessageCircle, PackageOpen, Pencil, Plus, Trash2 } from "lucide-react";
+import PageShell from "../components/PageShell";
+import StatusMessage from "../components/StatusMessage";
+import { api, formatPrice, resolveImage } from "../lib/api";
 
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+const statusStyles = {
+  Active: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20",
+  Paused: "text-amber-300 bg-amber-500/10 border-amber-500/20",
+  Sold: "text-slate-300 bg-slate-700/50 border-slate-600",
+};
 
-const initialListings = [
-  {
-    id: 1,
-    title: "Casio FX-991ES Plus Calculator",
-    category: "Electronics",
-    condition: "Like New",
-    price: 650,
-    status: "Active",
-    views: 142,
-    inquiries: 8,
-    listedAt: "24 Jun 2026",
-    location: "Main Block",
-    image: "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?w=900&auto=format&fit=crop",
-    description: "Original Casio scientific calculator with cover. Used for one semester only.",
-  },
-  {
-    id: 2,
-    title: "Engineering Mathematics Notes",
-    category: "Notes",
-    condition: "Good",
-    price: 250,
-    status: "Paused",
-    views: 63,
-    inquiries: 3,
-    listedAt: "21 Jun 2026",
-    location: "Library",
-    image: "https://images.unsplash.com/photo-1517842645767-c639042777db?w=900&auto=format&fit=crop",
-    description: "Clean handwritten notes for first-year engineering mathematics with solved examples.",
-  },
-  {
-    id: 3,
-    title: "Study Table Lamp",
-    category: "Hostel Essentials",
-    condition: "Good",
-    price: 450,
-    status: "Sold",
-    views: 119,
-    inquiries: 12,
-    listedAt: "18 Jun 2026",
-    location: "Boys Hostel",
-    image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=900&auto=format&fit=crop",
-    description: "Adjustable LED table lamp with three brightness levels. Works perfectly.",
-  },
-];
+export default function MyListings() {
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState("All");
+  const location = useLocation();
 
-const statusOptions = ["All", "Active", "Paused", "Sold"];
+  useEffect(() => {
+    api("/listings/mine")
+      .then((data) => setListings(data.listings))
+      .catch(setError)
+      .finally(() => setLoading(false));
+  }, []);
 
-const currencyFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
+  const visible = status === "All" ? listings : listings.filter((listing) => listing.status === status);
+  const stats = useMemo(() => ({
+    active: listings.filter((listing) => listing.status === "Active").length,
+    views: listings.reduce((sum, listing) => sum + listing.views, 0),
+    inquiries: listings.reduce((sum, listing) => sum + listing.inquiries, 0),
+  }), [listings]);
 
-function getStatusStyles(status) {
-  if (status === "Active") {
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
-  }
-
-  if (status === "Paused") {
-    return "border-amber-500/30 bg-amber-500/10 text-amber-300";
-  }
-
-  return "border-slate-600 bg-slate-800 text-slate-300";
-}
-
-function MyListings() {
-  const [listings, setListings] = useState(initialListings);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-
-  const filteredListings = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-
-    return listings.filter((listing) => {
-      const matchesStatus =
-        statusFilter === "All" || listing.status === statusFilter;
-      const matchesSearch =
-        !query ||
-        listing.title.toLowerCase().includes(query) ||
-        listing.category.toLowerCase().includes(query) ||
-        listing.location.toLowerCase().includes(query);
-
-      return matchesStatus && matchesSearch;
-    });
-  }, [listings, searchTerm, statusFilter]);
-
-  const stats = useMemo(() => {
-    const activeListings = listings.filter(
-      (listing) => listing.status === "Active"
-    ).length;
-    const totalViews = listings.reduce((total, listing) => total + listing.views, 0);
-    const totalInquiries = listings.reduce(
-      (total, listing) => total + listing.inquiries,
-      0
-    );
-    const totalValue = listings
-      .filter((listing) => listing.status !== "Sold")
-      .reduce((total, listing) => total + listing.price, 0);
-
-    return [
-      { label: "Active listings", value: activeListings },
-      { label: "Total views", value: totalViews },
-      { label: "Buyer inquiries", value: totalInquiries },
-      { label: "Unsold value", value: currencyFormatter.format(totalValue) },
-    ];
-  }, [listings]);
-
-  const updateListingStatus = (listingId, status) => {
-    setListings((currentListings) =>
-      currentListings.map((listing) =>
-        listing.id === listingId ? { ...listing, status } : listing
-      )
-    );
+  const updateStatus = async (listing, nextStatus) => {
+    try {
+      const data = await api(`/listings/${listing.id}`, { method: "PATCH", body: JSON.stringify({ status: nextStatus }) });
+      setListings((items) => items.map((item) => item.id === listing.id ? data.listing : item));
+    } catch (requestError) {
+      setError(requestError);
+    }
   };
 
-  const deleteListing = (listingId) => {
-    setListings((currentListings) =>
-      currentListings.filter((listing) => listing.id !== listingId)
-    );
-  };
-
-  const clearFilters = () => {
-    setSearchTerm("");
-    setStatusFilter("All");
+  const remove = async (listing) => {
+    if (!window.confirm(`Delete “${listing.title}”? This cannot be undone.`)) return;
+    try {
+      await api(`/listings/${listing.id}`, { method: "DELETE" });
+      setListings((items) => items.filter((item) => item.id !== listing.id));
+    } catch (requestError) {
+      setError(requestError);
+    }
   };
 
   return (
-    <div className="bg-slate-950 min-h-screen flex flex-col">
-      <Navbar />
-
-      <main className="flex-grow">
-        <section className="border-b border-slate-800 bg-slate-900/60">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 py-10">
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-              <div>
-                <p className="text-orange-400 font-semibold mb-3">
-                  Seller dashboard
-                </p>
-
-                <h1 className="text-4xl md:text-5xl font-bold text-white">
-                  My Listings
-                </h1>
-
-                <p className="text-slate-400 mt-3 max-w-2xl">
-                  Track your posted products, update availability, and see what buyers are checking.
-                </p>
-              </div>
-
-              <Link
-                to="/create-listing"
-                className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-3 rounded-lg font-semibold transition"
-              >
-                <Plus size={18} />
-                New Listing
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="max-w-7xl mx-auto w-full px-4 md:px-6 py-10">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-slate-900 border border-slate-800 rounded-lg p-5"
-              >
-                <p className="text-slate-500 text-sm">{stat.label}</p>
-                <p className="text-2xl font-bold text-white mt-2">
-                  {stat.value}
-                </p>
+    <PageShell>
+      <section className="border-b border-slate-800 bg-slate-900/30">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div><p className="text-orange-400 font-bold">Seller dashboard</p><h1 className="mt-3 text-4xl md:text-5xl font-black text-white">My listings</h1><p className="mt-2 text-slate-400">Manage availability and see how your products are doing.</p></div>
+          <Link to="/sell" className="inline-flex items-center justify-center gap-2 bg-orange-500 px-5 py-3 rounded-xl text-white font-bold"><Plus size={18} /> New listing</Link>
+        </div>
+      </section>
+      <section className="max-w-7xl mx-auto px-4 md:px-6 py-10">
+        {location.state?.notice && <div className="mb-6"><StatusMessage success={location.state.notice} /></div>}
+        <div className="grid grid-cols-3 gap-3 md:gap-5">
+          {[
+            ["Active", stats.active, PackageOpen],
+            ["Total views", stats.views, Eye],
+            ["Inquiries", stats.inquiries, MessageCircle],
+          ].map(([label, value, Icon]) => <div key={label} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6"><Icon className="text-orange-400" size={20} /><p className="mt-4 text-2xl md:text-3xl font-black text-white">{value}</p><p className="mt-1 text-xs md:text-sm text-slate-500">{label}</p></div>)}
+        </div>
+        <div className="mt-7 flex gap-2 overflow-auto pb-2">
+          {["All", "Active", "Paused", "Sold"].map((item) => <button key={item} onClick={() => setStatus(item)} className={`px-4 py-2 rounded-xl text-sm font-semibold border ${status === item ? "bg-orange-500 border-orange-500 text-white" : "bg-slate-900 border-slate-800 text-slate-400"}`}>{item}</button>)}
+        </div>
+        <div className="mt-6"><StatusMessage error={error} /></div>
+        {loading ? (
+          <div className="mt-7 space-y-4">
+            {Array.from({ length: 3 }, (_, index) => (
+              <div key={index} className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden grid md:grid-cols-[180px_1fr] animate-pulse">
+                <div className="w-full h-52 md:h-full min-h-[180px] bg-slate-800" />
+                <div className="p-5 md:p-6 space-y-4">
+                  <div className="h-5 bg-slate-800 rounded w-1/6" />
+                  <div className="h-7 bg-slate-800 rounded w-1/3" />
+                  <div className="h-4 bg-slate-800 rounded w-1/2" />
+                  <div className="pt-5 border-t border-slate-800 flex flex-wrap gap-2">
+                    <div className="h-9 bg-slate-800 rounded-lg w-24" />
+                    <div className="h-9 bg-slate-800 rounded-lg w-24" />
+                    <div className="h-9 bg-slate-800 rounded-lg w-20" />
+                    <div className="h-9 bg-slate-800 rounded-lg w-20" />
+                  </div>
+                </div>
               </div>
             ))}
           </div>
-
-          <div className="mt-8 bg-slate-900 border border-slate-800 rounded-lg p-4 md:p-5">
-            <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
-              <div className="flex items-center bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 lg:max-w-md w-full focus-within:border-orange-500 transition">
-                <Search
-                  size={18}
-                  className="text-slate-400 shrink-0"
-                />
-
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search by product, category, or location"
-                  className="w-full bg-transparent outline-none ml-3 text-white placeholder-slate-500"
-                />
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                <div className="flex items-center gap-2 text-slate-400">
-                  <SlidersHorizontal size={18} />
-                  <span className="text-sm">Status</span>
-                </div>
-
-                <div className="grid grid-cols-4 bg-slate-950 border border-slate-800 rounded-lg p-1">
-                  {statusOptions.map((status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => setStatusFilter(status)}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                        statusFilter === status
-                          ? "bg-orange-500 text-white"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      {status}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {filteredListings.length > 0 ? (
-            <div className="mt-8 space-y-4">
-              {filteredListings.map((listing) => (
-                <article
-                  key={listing.id}
-                  className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden"
-                >
-                  <div className="grid lg:grid-cols-[220px_1fr]">
-                    <div className="h-52 lg:h-full bg-slate-800">
-                      <img
-                        src={listing.image}
-                        alt={listing.title}
-                        className="h-full w-full object-cover"
-                      />
+        ) : visible.length ? (
+          <div className="mt-7 space-y-4">
+            {visible.map((listing) => (
+              <article key={listing.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden grid md:grid-cols-[180px_1fr]">
+                {listing.image ? <img src={resolveImage(listing.image)} alt={listing.title} className="w-full h-52 md:h-full object-cover bg-slate-800" /> : <div className="w-full h-52 md:h-full min-h-44 grid place-items-center bg-slate-800 text-slate-500"><PackageOpen size={34} /></div>}
+                <div className="p-5 md:p-6">
+                  <div className="flex flex-col lg:flex-row justify-between gap-5">
+                    <div>
+                      <span className={`inline-block border rounded-full px-3 py-1 text-xs font-bold ${statusStyles[listing.status]}`}>{listing.status}</span>
+                      <h2 className="mt-3 text-xl md:text-2xl font-bold text-white">{listing.title}</h2>
+                      <p className="mt-2 text-sm text-slate-400">{listing.category} · {listing.condition} · {listing.location}</p>
                     </div>
-
-                    <div className="p-5 md:p-6">
-                      <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <span
-                              className={`border text-xs font-semibold px-3 py-1 rounded-full ${getStatusStyles(
-                                listing.status
-                              )}`}
-                            >
-                              {listing.status}
-                            </span>
-
-                            <span className="text-slate-500 text-sm">
-                              {listing.category} · {listing.condition}
-                            </span>
-                          </div>
-
-                          <h2 className="text-2xl font-bold text-white mt-3">
-                            {listing.title}
-                          </h2>
-
-                          <p className="text-slate-400 mt-2 max-w-3xl">
-                            {listing.description}
-                          </p>
-
-                          <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-400">
-                            <span className="inline-flex items-center gap-2">
-                              <CalendarDays size={16} />
-                              {listing.listedAt}
-                            </span>
-
-                            <span className="inline-flex items-center gap-2">
-                              <MapPin size={16} />
-                              {listing.location}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="xl:text-right shrink-0">
-                          <p className="text-3xl font-bold text-orange-400">
-                            {currencyFormatter.format(listing.price)}
-                          </p>
-
-                          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                            <div className="border border-slate-800 bg-slate-950 rounded-lg px-4 py-3">
-                              <p className="text-slate-500">Views</p>
-                              <p className="text-white font-semibold mt-1">
-                                {listing.views}
-                              </p>
-                            </div>
-
-                            <div className="border border-slate-800 bg-slate-950 rounded-lg px-4 py-3">
-                              <p className="text-slate-500">Inquiries</p>
-                              <p className="text-white font-semibold mt-1">
-                                {listing.inquiries}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-6 pt-5 border-t border-slate-800 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
-                          >
-                            <Eye size={16} />
-                            Preview
-                          </button>
-
-                          <Link
-                            to="/create-listing"
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
-                          >
-                            <Pencil size={16} />
-                            Edit
-                          </Link>
-
-                          {listing.status === "Active" ? (
-                            <button
-                              type="button"
-                              onClick={() => updateListingStatus(listing.id, "Paused")}
-                              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-700/60 text-amber-300 hover:bg-amber-950/40 transition"
-                            >
-                              <PauseCircle size={16} />
-                              Pause
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => updateListingStatus(listing.id, "Active")}
-                              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-700/60 text-emerald-300 hover:bg-emerald-950/40 transition"
-                            >
-                              <CheckCircle2 size={16} />
-                              Activate
-                            </button>
-                          )}
-
-                          {listing.status !== "Sold" && (
-                            <button
-                              type="button"
-                              onClick={() => updateListingStatus(listing.id, "Sold")}
-                              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
-                            >
-                              <PackageOpen size={16} />
-                              Mark Sold
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
-                          >
-                            <MessageCircle size={16} />
-                            Messages
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => deleteListing(listing.id)}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-900/80 text-red-300 hover:bg-red-950/40 transition"
-                          >
-                            <Trash2 size={16} />
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    <div className="lg:text-right"><p className="text-2xl font-black text-orange-400">{formatPrice(listing.price)}</p><p className="mt-2 text-sm text-slate-500">{listing.views} views · {listing.inquiries} inquiries</p></div>
                   </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-8 bg-slate-900 border border-slate-800 rounded-lg p-10 text-center">
-              <div className="mx-auto h-14 w-14 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-500">
-                <PackageOpen size={28} />
-              </div>
-
-              <h2 className="text-2xl font-bold text-white mt-5">
-                No listings found
-              </h2>
-
-              <p className="text-slate-400 mt-2 max-w-md mx-auto">
-                Adjust your filters or create a new product listing.
-              </p>
-
-              <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="px-5 py-3 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
-                >
-                  Clear Filters
-                </button>
-
-                <Link
-                  to="/create-listing"
-                  className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-3 rounded-lg font-semibold transition"
-                >
-                  <Plus size={18} />
-                  New Listing
-                </Link>
-              </div>
-            </div>
-          )}
-        </section>
-      </main>
-
-      <Footer />
-    </div>
+                  <div className="mt-5 pt-5 border-t border-slate-800 flex flex-wrap gap-2">
+                    <Link to={`/listings/${listing.id}`} className="inline-flex items-center gap-2 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300"><Eye size={15} /> Preview</Link>
+                    <Link to={`/sell?edit=${listing.id}`} className="inline-flex items-center gap-2 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300"><Pencil size={15} /> Edit</Link>
+                    {listing.status !== "Sold" && <button onClick={() => updateStatus(listing, listing.status === "Active" ? "Paused" : "Active")} className="border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300">{listing.status === "Active" ? "Pause" : "Activate"}</button>}
+                    {listing.status !== "Sold" && <button onClick={() => updateStatus(listing, "Sold")} className="border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300">Mark sold</button>}
+                    <button onClick={() => remove(listing)} className="ml-auto inline-flex items-center gap-2 border border-red-900 rounded-lg px-3 py-2 text-sm text-red-300"><Trash2 size={15} /> Delete</button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-8 py-16 bg-slate-900 border border-slate-800 rounded-2xl text-center">
+            <BarChart3 size={36} className="mx-auto text-slate-600" /><h2 className="mt-4 text-xl font-bold text-white">Nothing here yet</h2><p className="mt-2 text-slate-400">Create a listing or try another status filter.</p>
+          </div>
+        )}
+      </section>
+    </PageShell>
   );
 }
-
-export default MyListings;

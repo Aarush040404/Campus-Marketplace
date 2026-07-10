@@ -1,18 +1,27 @@
-const express = require("express");
-const cors = require("cors");
+const { createApp } = require("./src/app");
+const { connectDatabase } = require("./src/config/database");
+const { env } = require("./src/config/env");
 
-const app = express();
+async function startServer() {
+  const dbConnected = await connectDatabase();
 
-app.use(cors());
-app.use(express.json());
+  if (!dbConnected) {
+    const { initializeMemoryStore } = require("./src/store/memoryStore");
+    await initializeMemoryStore();
+    console.log("Running in local memory-store mode (no active MongoDB connection).");
+  }
 
-app.get("/", (req, res) => {
-  res.json({
-    message: "Backend Connected Successfully",
-    aarush:  "this is just a test"
+  const app = createApp();
+  app.listen(env.port, () => {
+    console.log(
+      `CampusMarket API running on http://localhost:${env.port} (${
+        dbConnected ? "MongoDB connected" : "In-memory store"
+      })`
+    );
   });
-});
+}
 
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+startServer().catch((error) => {
+  console.error("Unable to start server:", error);
+  process.exit(1);
 });

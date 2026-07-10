@@ -1,5 +1,15 @@
 {
-  "dependencies": {
-    "react-router-dom": "^7.18.0"
+  "name": "campus-marketplace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Student-to-student marketplace for campus buying and selling.",
+  "scripts": {
+    "client": "npm --prefix client run dev",
+    "server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
+    "build": "npm --prefix client run build",
+    "lint": "npm --prefix client run lint",
+    "start": "npm --prefix server start"
   }
 }

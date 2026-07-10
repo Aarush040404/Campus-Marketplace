@@ -1,112 +1,88 @@
-# 🎓 Campus Marketplace
+# Campus Marketplace
 
-A student-to-student marketplace designed to simplify buying and selling within college communities.
+A student-to-student marketplace for buying and selling books, electronics, hostel essentials, notes, cycles, and other campus resources.
 
----
+## Overview
 
-## 📖 Overview
+Campus Marketplace gives students a dedicated place to post products, browse available listings, and contact sellers directly instead of relying on scattered WhatsApp groups or social media posts.
 
-College students frequently purchase books, calculators, lab equipment, electronics, hostel essentials, and other resources that become unnecessary after a semester. While many students are willing to sell these items, there is often no dedicated platform within a college ecosystem to facilitate these exchanges.
-
-As a result, buying and selling activities are typically scattered across WhatsApp groups, social media posts, and personal networks, making it difficult for students to discover available products or connect with potential buyers and sellers efficiently.
-
-CampusHub addresses this challenge by providing a centralized marketplace where students can showcase products, explore listings, and connect directly with sellers through a simple and accessible platform.
-
----
-
-## ✨ What CampusHub Provides
-
-* 📦 Product listing and management
-* 📸 Image-based product showcase
-* 💰 Transparent pricing information
-* 🔍 Product discovery and search
-* 📱 Direct seller contact through WhatsApp
-* 👤 Personalized user accounts
-* 🛠️ Listing creation, editing, and deletion
-
----
-
-## 🏗️ Core Features
-
-### Authentication
-
-* Secure user registration
-* User login and authentication
-* Protected routes using JWT
-
-### Marketplace
-
-* Browse all available listings
-* View detailed product information
-* Search products by name or keywords
-
-### Listing Management
-
-* Create new product listings
-* Upload product images
-* Add product descriptions and pricing
-* Update or remove existing listings
-
-### User Dashboard
-
-* View personal listings
-* Manage posted products
-* Track marketplace activity
-
----
-
-## 🛠️ Technology Stack
-
-### Frontend
-
-* React.js
-* Vite
-* Tailwind CSS
-* Framer Motion
-* Axios
-
-### Backend
-
-* Node.js
-* Express.js
-
-### Database
-
-* MongoDB
-* Mongoose
-
-### Authentication & Security
-
-* JSON Web Token (JWT)
-* Bcrypt.js
-
----
-
-## 📂 Project Structure
+## Current Project Shape
 
 ```text
-campushub/
-│
-├── client/        # React Frontend
-│
-├── server/        # Express Backend
-│
-├── README.md
-└── .gitignore
+Campus-Marketplace/
+|-- client/   # React + Vite frontend
+|-- server/   # Express backend
+|-- README.md
+|-- package.json
 ```
 
----
+The `client` and `server` folders are separate Node packages with their own `package.json` and `package-lock.json` files. The root `package.json` is only a command hub for common scripts.
 
-## 🎯 Objective
+## Tech Stack
 
-CampusHub aims to make student-to-student commerce more organized, accessible, and efficient by providing a dedicated platform for discovering and exchanging products within a college community.
+- Frontend: React, Vite, Tailwind CSS, React Router, Lucide React
+- Backend: Node.js, Express
+- Database: MongoDB with Mongoose
 
-Instead of relying on scattered communication channels, students can use a single platform to connect, trade resources, and make better use of items that would otherwise remain unused.
+## Setup
 
----
+Install dependencies separately:
 
-## 👩‍💻 Developed By
+```bash
+npm --prefix client install
+npm --prefix server install
+```
 
-Aarush Gambhir & Avika Yadav
-B.Tech CSE (Artificial Intelligence)
+Run the frontend:
+
+```bash
+npm run client
+```
+
+Run the backend:
+
+```bash
+npm run server
+```
+
+Copy `server/.env.example` to `server/.env` and paste your Atlas connection
+string into `MONGODB_URI`. That is the only required environment value. The API
+adds the `campusmarket` database name when needed and derives a stable signing
+secret automatically; `JWT_SECRET` remains available as an optional override.
+
+Useful checks:
+
+```bash
+npm run lint
+npm run build
+```
+
+## Features
+
+- Search, filter, sort, and browse marketplace listings
+- Listing detail pages with direct WhatsApp seller contact
+- JWT-based registration, login, and protected routes
+- Create and edit listings with image uploads
+- Seller dashboard with status management and analytics
+- MongoDB persistence for accounts and marketplace listings
+
+## Backend Structure
+
+```text
+server/src/
+|-- config/       # environment and database setup
+|-- controllers/  # HTTP request/response handling
+|-- data/         # demo seed data
+|-- middleware/   # authentication, uploads, and errors
+|-- models/       # Mongoose schemas and indexes
+|-- routes/       # API route definitions
+|-- services/     # business logic and persistence abstraction
+|-- store/        # zero-config development store
+|-- utils/        # shared errors, tokens, and serializers
+```
+
+## Developed By
+
+Aarush Gambhir and Avika Yadav  
+B.Tech CSE (Artificial Intelligence)  
 Swami Keshvanand Institute of Technology, Jaipur
