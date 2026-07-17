@@ -18,7 +18,7 @@ export default function Login() {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
-    try {
+    try {           
       await login(form);
       const destination = location.state?.from;
       navigate(typeof destination === "string" && destination.startsWith("/") ? destination : "/", { replace: true });
